@@ -1,0 +1,53 @@
+:root { color-scheme: light; font-family: "Segoe UI", system-ui, sans-serif; color: #102b27; background: #eef4f1; font-size: 15px; }
+* { box-sizing: border-box; }
+body { margin: 0; }
+main { width: min(900px, 100% - 36px); margin: 40px auto 28px; }
+header { margin-bottom: 26px; }
+.brand { display: flex; align-items: center; gap: 8px; color: #116447; letter-spacing: .08em; font-weight: 700; }
+h1 { font-size: clamp(30px, 5vw, 46px); margin: 5px 0; letter-spacing: -.045em; }
+h2 { font-size: 20px; margin: 0 0 14px; }
+h3 { margin: 0; font-size: 16px; }
+p { line-height: 1.5; margin: 7px 0; }
+fieldset { border: 0; min-width: 0; padding: 0; margin: 0; }
+section, details, footer { padding: 20px; margin-bottom: 12px; border: 1px solid #cfded6; background: white; border-radius: 14px; }
+label { display: block; margin: 10px 0 5px; font-weight: 600; }
+input:not([type="checkbox"]), select, textarea { display: block; width: 100%; font: inherit; color: inherit; padding: 10px 12px; border: 1px solid #a9c1b6; border-radius: 8px; background: #fbfdfc; }
+textarea { resize: vertical; }
+label > :is(input:not([type="checkbox"]), textarea) { margin-top: 5px; }
+button, .button { display: inline-flex; align-items: center; justify-content: center; border-radius: 8px; border: 1px solid #a9c1b6; padding: 9px 13px; background: #fff; color: #115b44; font: inherit; font-weight: 600; text-decoration: none; cursor: pointer; white-space: nowrap; }
+button:hover:not(:disabled), .button:hover { background: #e7f2ec; }
+button:disabled { opacity: .48; cursor: default; }
+:focus-visible { outline: 2px solid #078574; outline-offset: 2px; }
+.primary { background: #116447; border-color: #116447; color: white; }
+.primary:hover:not(:disabled) { background: #0b523a; }
+.line, .section-title { display: flex; align-items: center; gap: 10px; }
+.line input { min-width: 0; }
+.section-title { justify-content: space-between; }
+.section-title h2 { margin-bottom: 0; }
+.grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0 14px; }
+.note { color: #49615a; font-size: 13px; }
+.stand, .case { margin-top: 12px; padding: 12px; border: 1px solid #dbe6df; border-radius: 10px; }
+.case-label { margin-top: 0; }
+.reorder { display: flex; gap: 6px; justify-content: flex-end; }
+.reorder button, .stand button { padding: 5px 9px; font-size: 13px; }
+.checkbox { display: flex; align-items: center; gap: 7px; font-weight: 500; }
+summary { cursor: pointer; font-size: 17px; font-weight: 650; }
+.workflow { padding: 0; overflow: clip; }
+.workflow > summary { padding: 13px 15px; color: #154638; }
+.workflow[open] > summary { border-bottom: 1px solid #cfded6; background: #f3f8f5; }
+.workflow > form { padding: 12px; }
+.workflow form :is(section, details, footer) { padding: 12px; }
+.workflow form footer { margin-bottom: 0; }
+.add-row { margin-top: 10px; }
+#word-exporter { display: block; width: 100%; height: 310px; border: 0; }
+a { color: #115b44; }
+#status:empty, [hidden] { display: none !important; }
+#status[data-error="yes"] { color: #9f2e2a; }
+.actions { flex-wrap: wrap; }
+@media (max-width: 560px) { main { margin-top: 20px; } .grid { grid-template-columns: 1fr; } .line:not(.actions) { align-items: stretch; flex-direction: column; } }
+@media (max-width: 420px) {
+  main { width: calc(100% - 24px); margin-top: 12px; }
+  header { margin-bottom: 16px; }
+  section, details, footer { padding: 12px; }
+  .section-title { flex-wrap: wrap; }
+}

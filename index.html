@@ -1,0 +1,108 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Облтех — чек-листы и Word</title>
+  <link rel="stylesheet" href="style.css">
+  <script type="module" src="app.mjs"></script>
+</head>
+<body>
+  <main>
+    <header>
+      <p class="brand"><img src="icons/icon-32.png" alt="" width="26" height="26"> Облтех</p>
+      <h1>Чек-листы и Word</h1>
+    </header>
+
+    <details class="workflow" id="checklist-workflow">
+    <summary>Создать чек-лист</summary>
+    <form id="builder" novalidate>
+      <fieldset id="content">
+        <section>
+          <h2>Задача</h2>
+          <label for="jira">Ссылка на Jira</label>
+          <div class="line">
+            <input id="jira" type="url" placeholder="https://jira.mos.social/browse/ПРОЕКТ-123">
+            <button id="import" type="button">Загрузить из Jira</button>
+          </div>
+          <label for="title">Название формы</label>
+          <input id="title" required>
+          <label for="intro">Вводные данные для тестировщиков</label>
+          <textarea id="intro" rows="4"></textarea>
+        </section>
+
+        <details>
+          <summary>Тестовые стенды</summary>
+          <div id="stands"></div>
+          <button id="add-stand" class="add-row" type="button">+ Добавить стенд</button>
+          <p class="note">ФИО и версию тестировщик заполнит в самой форме.</p>
+        </details>
+
+        <details>
+          <summary>Кейсы <span id="count" aria-label="Количество кейсов"></span></summary>
+          <div id="cases"></div>
+          <button id="add-case" class="add-row" type="button">+ Добавить кейс</button>
+          <label class="checkbox"><input id="include-unchecked" type="checkbox"> Добавить статус «Не проверено»</label>
+          <p class="note">К каждому кейсу добавятся статусы «Работает» и «Не работает», необязательный комментарий и загрузка скриншотов.</p>
+        </details>
+      </fieldset>
+
+      <footer>
+        <div class="line actions">
+          <button class="primary" id="create" type="submit">Создать черновик</button>
+          <a id="result" class="button" target="_blank" rel="noopener" hidden>Открыть черновик ↗</a>
+          <button id="next" type="button" hidden>Новая задача</button>
+        </div>
+        <p id="status" role="status" aria-live="polite"></p>
+      </footer>
+    </form>
+    </details>
+
+    <details class="workflow" id="word-workflow">
+      <summary>Перенести результаты в Word</summary>
+      <iframe id="word-exporter" title="Экспорт результатов тестирования в Word" data-src="word/index.html" hidden></iframe>
+    </details>
+
+      <details id="settings">
+        <summary>Подключение к Яндекс Формам</summary>
+        <label for="mode">Тип организации и входа</label>
+        <select id="mode">
+          <option value="identity">Yandex Identity Hub · OAuth</option>
+          <option value="business">Яндекс 360 для бизнеса · OAuth</option>
+          <option value="iam">Yandex Cloud · IAM</option>
+        </select>
+        <div class="grid">
+          <div><label for="org">ID организации</label><input id="org" spellcheck="false" autocomplete="off"></div>
+          <div><label for="token">Токен доступа</label><input id="token" type="password" autocomplete="off" spellcheck="false"></div>
+        </div>
+        <p class="note">Токен остаётся в открытой панели. <a href="https://yandex.ru/support/forms/ru/api-ref/access" target="_blank" rel="noopener">Как получить доступ к API</a></p>
+        <label for="recipient">Email для результатов</label>
+        <input id="recipient" type="email" autocomplete="email" value="mezentsevda@oblteh.ru">
+        <p class="note">Оставьте поле пустым, если почтовые уведомления не нужны.</p>
+      </details>
+
+  </main>
+
+  <template id="case-row">
+    <div class="case">
+      <label class="case-label">Кейс <span></span><textarea rows="3" required></textarea></label>
+      <div class="reorder">
+        <button type="button" data-command="up" aria-label="Переместить кейс выше" title="Выше">↑</button>
+        <button type="button" data-command="down" aria-label="Переместить кейс ниже" title="Ниже">↓</button>
+        <button type="button" data-command="remove">Убрать</button>
+      </div>
+    </div>
+  </template>
+  <template id="stand-row">
+    <div class="stand">
+      <div class="section-title"><h3>Стенд <span></span></h3><button type="button" data-command="remove">Убрать</button></div>
+      <div class="grid">
+        <label>Сервер для тестирования<input data-stand="server"></label>
+        <label>Профиль<input data-stand="profile"></label>
+        <label>Логин<input data-stand="login" autocomplete="off"></label>
+        <label>Пароль<input data-stand="access" autocomplete="off"></label>
+      </div>
+    </div>
+  </template>
+</body>
+</html>

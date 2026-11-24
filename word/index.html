@@ -1,0 +1,110 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Результаты тестирования в Word</title>
+  <link rel="stylesheet" href="style.css">
+  <script defer src="vendor/docx.js"></script>
+  <script defer src="import.js"></script>
+  <script defer src="report.js"></script>
+  <script defer src="app.js"></script>
+</head>
+<body>
+  <main>
+    <div id="message" class="message" role="status" aria-live="polite" hidden></div>
+    <section class="panel" aria-labelledby="import-heading">
+      <h2 id="import-heading">Ответы тестировщиков</h2>
+      <label for="form-link">Ссылка на форму</label>
+      <div class="with-button">
+        <input id="form-link" type="url" placeholder="https://forms.yandex.ru/cloud/…">
+        <a class="button" id="open-form" target="_blank" rel="noopener noreferrer" hidden>Открыть форму</a>
+      </div>
+      <button id="use-last-form" type="button" hidden>Взять последний чек-лист</button>
+      <p class="hint">Скачайте CSV или JSON на вкладке «Ответы» и загрузите его сюда.</p>
+      <div class="toolbar">
+        <label class="button file-button">Загрузить CSV или JSON<input id="export-file" type="file" accept=".csv,.json,text/csv,application/json"></label>
+      </div>
+      <details class="other-import">
+        <summary>Вставка текста и ручной ввод</summary>
+        <div class="toolbar">
+          <button id="toggle-paste" type="button" aria-controls="paste-panel" aria-expanded="false">Вставить текст</button>
+          <button id="manual" type="button">Добавить кейс вручную</button>
+        </div>
+        <div id="paste-panel" class="paste-panel" hidden>
+          <label for="paste">Текст письма, CSV или JSON</label>
+          <textarea id="paste" rows="5" placeholder="Вставьте содержимое письма или выгрузки"></textarea>
+          <p class="hint">Для нескольких кейсов используйте строки «Кейс 1», «Кейс 2». Поля распознаются по подписям «Действие», «Ожидаемый результат», «Результат», «Комментарий» и «Скриншоты».</p>
+          <button id="import-paste" type="button">Загрузить текст</button>
+        </div>
+      </details>
+    </section>
+    <details id="report" class="panel" hidden>
+      <summary>Данные отчёта</summary>
+      <label>Название задачи<input id="title" placeholder="Укажите название задачи"></label>
+      <div class="grid report-fields">
+        <label>Ссылка на задачу<input id="task-link" type="url" required placeholder="https://jira…/browse/…"></label>
+        <label>Функция или версия ПО<input id="version"></label>
+        <label>Заявитель или медицинская организация<input id="organization"></label>
+        <label>Постусловие<textarea id="postcondition" rows="2"></textarea></label>
+      </div>
+    </details>
+    <details id="results" class="panel" hidden>
+      <summary>Кейсы и скриншоты</summary>
+      <div class="section-head">
+        <div><h2 id="results-heading">Кейсы</h2><p id="summary"></p></div>
+        <label class="button file-button">Добавить скриншоты<input id="batch-images" type="file" accept="image/*" multiple></label>
+        <button id="retry-images" type="button" hidden>Повторить загрузку скриншотов</button>
+      </div>
+      <div class="panel" id="unassigned" hidden></div>
+      <div id="runs"></div>
+    </details>
+    <details id="excluded" class="panel" hidden>
+      <summary>Исключённые ответы <span id="excluded-count"></span></summary>
+      <div id="excluded-runs"></div>
+    </details>
+    <div class="export-actions" id="export-actions" hidden>
+      <button class="primary" id="export" type="button" disabled>Скачать Word</button>
+    </div>
+  </main>
+  <template id="run-template">
+    <section class="panel run">
+      <div class="run-heading"><h3></h3><button class="exclude-run" type="button">Убрать ответ из отчёта</button></div>
+      <div class="run-fields">
+        <label>Исполнитель<input data-field="tester"></label>
+        <label>Версия<input data-field="version"></label>
+      </div>
+      <div class="cases"></div>
+      <button class="add-case" type="button">Добавить кейс</button>
+    </section>
+  </template>
+  <template id="case-template">
+    <details class="case">
+      <summary><span class="case-title"></span><span class="case-status"></span></summary>
+      <div class="case-body">
+        <label>Действие<textarea data-field="action" rows="3"></textarea></label>
+        <div class="grid">
+          <label>Ожидаемый результат<textarea data-field="expected" rows="3"></textarea></label>
+          <label>Статус<input data-field="status" list="statuses" placeholder="пройден, провален, заблокирован"></label>
+        </div>
+        <label>Комментарий<textarea data-field="comment" rows="2"></textarea></label>
+        <label>Ссылки на скриншоты<textarea data-field="links" rows="2" placeholder="Одна ссылка на строку"></textarea></label>
+        <p class="image-status" hidden></p>
+        <div class="case-links"></div>
+        <div class="images"></div>
+        <div class="toolbar">
+          <label class="button file-button">Выбрать изображения<input type="file" class="case-files" accept="image/*" multiple></label>
+          <button class="paste-image" type="button">Вставить через Ctrl+V</button>
+          <button class="load-images" type="button" hidden>Загрузить изображения по ссылкам</button>
+          <button class="remove-case" type="button">Удалить кейс</button>
+        </div>
+      </div>
+    </details>
+  </template>
+  <datalist id="statuses">
+    <option value="пройден"></option>
+    <option value="провален"></option>
+    <option value="заблокирован"></option>
+  </datalist>
+</body>
+</html>
