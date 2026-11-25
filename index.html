@@ -75,7 +75,9 @@
           <div><label for="org">ID организации</label><input id="org" spellcheck="false" autocomplete="off"></div>
           <div><label for="token">Токен доступа</label><input id="token" type="password" autocomplete="off" spellcheck="false"></div>
         </div>
-        <p class="note">Токен остаётся в открытой панели. <a href="https://yandex.ru/support/forms/ru/api-ref/access" target="_blank" rel="noopener">Как получить доступ к API</a></p>
+        <label class="checkbox"><input id="remember-token" type="checkbox"> Запомнить токен в этом Chrome</label>
+        <p class="note" id="token-status" role="status">Снимите флажок, чтобы удалить сохранённый токен.</p>
+        <p class="note"><a href="https://yandex.ru/support/forms/ru/api-ref/access" target="_blank" rel="noopener">Как получить доступ к API</a></p>
         <label for="recipient">Email для результатов</label>
         <input id="recipient" type="email" autocomplete="email" value="mezentsevda@oblteh.ru">
         <p class="note">Оставьте поле пустым, если почтовые уведомления не нужны.</p>

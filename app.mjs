@@ -1,5 +1,6 @@
 import {defaultStand, draftPlan, editorUrl, extractCases, jiraLink} from './core.mjs';
 import {downloadFormsAttachment, formsApi, formsAttachmentUrl, populateDraft, readIssue} from './services.mjs';
+import {savedConnectionKey, savedConnectionWriter} from './connection.mjs';
 
 const $ = id => document.getElementById(id);
 let busy = false;
@@ -7,6 +8,21 @@ let job;
 let reportSource;
 const exporter = $('word-exporter');
 const formsAuth = () => Object.fromEntries(['mode', 'org', 'token'].map(id => [id, $(id).value]));
+const writeSavedConnection = savedConnectionWriter(chrome.storage.local);
+let connectionRevision = 0;
+
+async function rememberConnection() {
+  const revision = ++connectionRevision;
+  const remember = $('remember-token').checked;
+  try {
+    const saved = await writeSavedConnection(formsAuth(), remember);
+    if (revision !== connectionRevision) return;
+    $('token-status').textContent = saved ? 'Токен сохранён в этом профиле Chrome.'
+      : remember ? 'Введите токен, чтобы запомнить его.' : 'Сохранённая копия токена удалена.';
+  } catch {
+    if (revision === connectionRevision) $('token-status').textContent = 'Не удалось обновить сохранённый токен. Повторите попытку.';
+  }
+}
 
 window.formsScreenshots = {
   supports: link => Boolean(formsAttachmentUrl(link)),
@@ -25,6 +41,12 @@ $('token').addEventListener('change', () => {
     exporter.contentWindow?.postMessage({type: 'retry-form-files'}, location.origin);
   }
 });
+$('remember-token').addEventListener('change', rememberConnection);
+for (const id of ['mode', 'org', 'token']) {
+  $(id).addEventListener('input', () => {
+    if ($('remember-token').checked) rememberConnection();
+  });
+}
 const workflows = [...document.querySelectorAll('.workflow')];
 for (const workflow of workflows) {
   workflow.addEventListener('toggle', () => {
@@ -186,9 +208,17 @@ $('next').addEventListener('click', () => {
 
 addDefaultStand();
 addRow('cases', 'case-row', false);
-const preferences = await chrome.storage.local.get(['mode', 'org', 'recipient', 'lastDraft', 'lastReportSource']);
+const preferences = await chrome.storage.local.get(['mode', 'org', 'recipient', 'lastDraft', 'lastReportSource', savedConnectionKey]);
 for (const id of ['mode', 'org', 'recipient']) {
   if (typeof preferences[id] === 'string') $(id).value = preferences[id];
+}
+const savedConnection = preferences[savedConnectionKey];
+if (typeof savedConnection?.token === 'string' && savedConnection.token.trim()) {
+  for (const id of ['mode', 'org', 'token']) {
+    if (typeof savedConnection[id] === 'string') $(id).value = savedConnection[id];
+  }
+  $('remember-token').checked = true;
+  $('token-status').textContent = 'Токен восстановлен из этого профиля Chrome.';
 }
 if (/^https:\/\/forms\.yandex\.ru\/cloud\/admin\/[a-f0-9]{24}\/edit$/i.test(preferences.lastDraft)) {
   $('result').href = preferences.lastDraft;
