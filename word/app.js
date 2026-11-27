@@ -1,22 +1,17 @@
 "use strict";
 
 const $ = (selector, root = document) => root.querySelector(selector);
-const state = { runs: [], unassigned: [], pending: 0, downloading: new Map(), exporting: false };
-const formLink = $("#form-link");
+const state = { runs: [], unassigned: [], pending: 0, downloading: new Map(), exporting: false, issue: null };
+const jiraInput = $("#jira-task");
 const titleInput = $("#title");
-const taskLink = $("#task-link");
 const exportButton = $("#export");
 const statusLabel = (item) => inputData.status(item.status) || "Без статуса";
-const reference = {
-  title: "ФЛК при госпитализации (проверка решения врача и выполнения назначений)",
-  exportName: "ФЛК при госпитализации проверка решения врача и выполнения н",
-  form: "https://forms.yandex.ru/cloud/6b04268349af47255b523d29",
-  task: "https://jira.mos.social/browse/KISEMIAS2019-21568"
-};
 let imagePasteTarget;
-let lastForm;
+let reportRevision = 0;
+let importRevision = 0;
 const includedRuns = () => inputData.includedRuns(state.runs);
 const formsFiles = window.parent !== window && window.parent.formsScreenshots;
+const jira = window.parent !== window && window.parent.wordJira;
 
 function message(value, error = false, sticky = false) {
   const box = $("#message");
@@ -34,6 +29,7 @@ function refreshSummary() {
   const count = caseCount();
   const active = includedRuns();
   $("#report").hidden = !active.length;
+  $("#report-task").textContent = state.issue?.key ?? "";
   $("#results").hidden = !active.length;
   $("#export-actions").hidden = !active.length;
   $("#summary").textContent = "Кейсов: " + count + " · Ответов: " + active.length;
@@ -43,38 +39,9 @@ function refreshSummary() {
   $("#retry-images").disabled = Boolean(state.downloading.size);
 }
 
-function updateFormLink() {
-  const url = inputData.httpUrl(formLink.value.trim());
-  const anchor = $("#open-form");
-  anchor.hidden = !url;
-  const path = url?.origin === "https://forms.yandex.ru" && url.pathname;
-  const id = path && path.match(/^\/cloud\/(?:admin\/)?([a-f0-9]{24})(?:\/(?:edit|answers))?\/?$/i)?.[1];
-  if (url) anchor.href = id ? `https://forms.yandex.ru/cloud/admin/${id}/answers` : url.href;
-  else anchor.removeAttribute("href");
-  anchor.textContent = id ? "Открыть ответы" : "Открыть форму";
-  if (id && !taskLink.value.trim() && reference.form.endsWith(id)) taskLink.value = reference.task;
-}
-
-function applyReportSource(force = false) {
-  if (!lastForm) return;
-  if (force || !formLink.value.trim()) formLink.value = lastForm.answersUrl;
-  if (force || !titleInput.value.trim()) titleInput.value = lastForm.title || "";
-  if (force || !taskLink.value.trim()) taskLink.value = lastForm.taskUrl || "";
-  updateFormLink();
-}
-
 window.addEventListener("message", (event) => {
   if (window.parent === window || event.source !== window.parent || event.origin !== location.origin) return;
-  if (event.data?.type === "retry-form-files") {
-    loadScreenshots(targetRows().map(({item}) => item));
-    return;
-  }
-  if (event.data?.type !== "report-source") return;
-  const source = event.data.source;
-  if (typeof source?.answersUrl !== "string" || !/^https:\/\/forms\.yandex\.ru\/cloud\/admin\/[a-f0-9]{24}\/answers$/i.test(source.answersUrl)) return;
-  lastForm = source;
-  if (!state.runs.length && !formLink.value.trim()) applyReportSource();
-  $("#use-last-form").hidden = false;
+  if (event.data?.type === "retry-form-files") loadScreenshots(targetRows().map(({ item }) => item));
 });
 
 function targetRows() {
@@ -322,33 +289,37 @@ function renderExcluded() {
   }
 }
 
-function importSource(source, filename = "") {
-  const extension = filename.split(".").at(-1).toLowerCase();
-  const runs = inputData.parse(source, extension);
-  const used = new Set(state.runs.map((run) => run.id).filter(Boolean));
-  const added = runs.filter((run) => {
+function resetReport() {
+  reportRevision++;
+  for (const item of state.downloading.keys()) cancelDownloads(item);
+  for (const run of state.runs) {
+    for (const item of run.cases) item.images.forEach(asset => URL.revokeObjectURL(asset.preview));
+  }
+  state.unassigned.forEach(asset => URL.revokeObjectURL(asset.preview));
+  state.runs = [];
+  state.unassigned = [];
+  state.pending = 0;
+  state.exporting = false;
+  state.issue = null;
+  imagePasteTarget = undefined;
+  for (const id of ["title", "version", "organization", "postcondition"]) $("#" + id).value = "";
+}
+
+function startReport(runs, issue) {
+  const used = new Set();
+  const answers = runs.filter((run) => {
     if (!run.id) return true;
     if (used.has(run.id)) return false;
     used.add(run.id);
     return true;
   });
-  if (!added.length) {
-    message("Эти ответы уже загружены.");
-    return;
-  }
-  state.runs.push(...added);
-  const sourceName = added[0].title || filename.replace(/\.[^.]+$/, "").replace(/^\d{4}-\d{2}-\d{2}[\s_-]+/, "");
-  const knownTask = [reference.exportName, reference.title].includes(sourceName);
-  if (!titleInput.value.trim()) titleInput.value = knownTask ? reference.title : sourceName;
-  if (!taskLink.value.trim()) {
-    const importedLink = added.find((run) => inputData.taskUrl(run.taskLink))?.taskLink;
-    taskLink.value = importedLink || (knownTask ? reference.task : "");
-  }
+  resetReport();
+  state.runs = answers;
+  state.issue = issue;
+  titleInput.value = issue.title || answers.find(run => run.title)?.title || issue.key;
   render();
-  const count = added.reduce((sum, run) => sum + run.cases.length, 0);
-  const skipped = runs.length - added.length;
-  message("Загружено кейсов: " + count + "." + (skipped ? " Повторных ответов пропущено: " + skipped + "." : ""));
-  loadScreenshots(added.flatMap(run => run.cases));
+  message("Формирую Word для " + issue.key + "…");
+  return download();
 }
 
 async function decodeImage(file) {
@@ -398,6 +369,7 @@ function cancelDownloads(item) {
 }
 
 async function loadScreenshots(items, includePublic = false) {
+  const revision = reportRevision;
   const jobs = items.flatMap(item => {
     if (state.downloading.has(item)) return [];
     const links = linksForDownload(item, includePublic);
@@ -432,6 +404,7 @@ async function loadScreenshots(items, includePublic = false) {
     }
   }
   await Promise.all(Array.from({length: Math.min(3, jobs.length)}, worker));
+  if (revision !== reportRevision) return;
   render();
   const notes = loaded ? [`Загружено скриншотов: ${loaded}.`] : [];
   if (failures.size) notes.push(...failures, "Можно повторить загрузку или добавить файлы вручную.");
@@ -440,6 +413,7 @@ async function loadScreenshots(items, includePublic = false) {
 
 async function attach(files, selected) {
   if (!files.length) return;
+  const revision = reportRevision;
   state.pending++;
   refreshSummary();
   try {
@@ -452,6 +426,10 @@ async function attach(files, selected) {
         continue;
       }
       const asset = result.value;
+      if (revision !== reportRevision) {
+        URL.revokeObjectURL(asset.preview);
+        continue;
+      }
       const target = selected ? targetRows().find(({ item }) => item === selected)?.item : autoMatch(asset);
       if (target) {
         target.images.push(asset);
@@ -463,14 +441,17 @@ async function attach(files, selected) {
         state.unassigned.push(asset);
       }
     }
+    if (revision !== reportRevision) return;
     render();
     const notes = [];
     if (assigned) notes.push("Прикреплено скриншотов: " + assigned + ".");
     if (state.unassigned.length) notes.push("Выберите кейсы для остальных скриншотов.");
     message([...notes, ...new Set(errors)].join(" "), Boolean(errors.length), Boolean(errors.length));
   } finally {
-    state.pending--;
-    refreshSummary();
+    if (revision === reportRevision) {
+      state.pending--;
+      refreshSummary();
+    }
   }
 }
 
@@ -480,26 +461,16 @@ function filenameFor(title) {
 }
 
 async function download() {
-  if (state.exporting || state.pending || state.downloading.size) return;
+  if (!state.issue || state.exporting || state.pending || state.downloading.size) return;
+  const revision = reportRevision;
+  const issue = state.issue;
   const info = {
-    title: titleInput.value.trim(),
-    taskLink: taskLink.value.trim(),
+    title: titleInput.value.trim() || issue.title || issue.key,
+    taskLink: issue.url,
     version: $("#version").value.trim(),
     organization: $("#organization").value.trim(),
     postcondition: $("#postcondition").value.trim()
   };
-  if (!info.title) {
-    $("#report").open = true;
-    message("Укажите название задачи.", true, true);
-    titleInput.focus();
-    return;
-  }
-  if (!inputData.taskUrl(info.taskLink)) {
-    $("#report").open = true;
-    message("Вставьте полный адрес конкретной задачи.", true, true);
-    taskLink.focus();
-    return;
-  }
   if (state.unassigned.length) {
     $("#results").open = true;
     message("Привяжите скриншоты к кейсам или уберите лишние файлы.", true, true);
@@ -507,18 +478,13 @@ async function download() {
     return;
   }
   await loadScreenshots(targetRows().map(({item}) => item));
+  if (revision !== reportRevision) return;
   if (state.exporting || state.pending || state.downloading.size) return;
-  const runs = includedRuns().filter((run) => run.cases.length);
+  const runs = includedRuns().filter((run) => run.cases.length).map(run => ({
+    ...run,
+    cases: run.cases.map(item => ({...item, missingScreenshots: outstandingImages(item).length}))
+  }));
   if (!runs.length) return;
-  const missingIndex = targetRows().findIndex(({ item }) => outstandingImages(item).length);
-  if (missingIndex !== -1) {
-    $("#results").open = true;
-    const card = document.querySelectorAll(".case")[missingIndex];
-    card.open = true;
-    card.querySelector(".case-files").focus();
-    message("Не все скриншоты загрузились. Проверьте подключение к Яндекс Формам или добавьте файлы вручную.", true, true);
-    return;
-  }
   if (runs.some((run) => run.cases.some((item) => !item.action.trim()))) {
     $("#results").open = true;
     message("Заполните поле «Действие» у каждого кейса.", true, true);
@@ -531,6 +497,7 @@ async function download() {
   refreshSummary();
   try {
     const blob = await wordReport.build(runs, info);
+    if (revision !== reportRevision) return;
     const url = URL.createObjectURL(blob);
     const anchor = document.createElement("a");
     anchor.href = url;
@@ -539,56 +506,44 @@ async function download() {
     anchor.click();
     anchor.remove();
     setTimeout(() => URL.revokeObjectURL(url), 30000);
-    message("Документ сформирован. Проверьте загрузки браузера.", false, true);
+    const missing = runs.some(run => run.cases.some(item => item.missingScreenshots));
+    message(missing
+      ? "Word для " + issue.key + " сформирован. Часть скриншотов недоступна. Их можно добавить и скачать отчёт повторно."
+      : "Word для " + issue.key + " сформирован. Проверьте загрузки браузера.", missing, true);
   } catch (error) {
+    if (revision !== reportRevision) return;
     console.error(error);
     message("Не удалось сформировать Word. " + error.message, true, true);
   } finally {
-    state.exporting = false;
-    refreshSummary();
+    if (revision === reportRevision) {
+      state.exporting = false;
+      refreshSummary();
+    }
   }
 }
 
-formLink.addEventListener("input", updateFormLink);
-$("#use-last-form").addEventListener("click", () => {
-  if (formLink.value.trim() === lastForm.answersUrl) {
-    applyReportSource();
-    return;
-  }
-  if (state.pending || state.downloading.size || state.exporting) return;
-  if (state.runs.length || state.unassigned.length) {
-    if (!window.confirm("Начать отчёт по последнему чек-листу? Загруженные в текущий отчёт ответы и скриншоты будут сброшены.")) return;
-    for (const run of state.runs) {
-      for (const item of run.cases) item.images.forEach(asset => URL.revokeObjectURL(asset.preview));
-    }
-    state.unassigned.forEach(asset => URL.revokeObjectURL(asset.preview));
-    state.runs = [];
-    state.unassigned = [];
-    imagePasteTarget = undefined;
-    for (const id of ["version", "organization", "postcondition", "paste"]) $("#" + id).value = "";
-    render();
-  }
-  applyReportSource(true);
-  message("");
-});
-$("#toggle-paste").addEventListener("click", (event) => {
-  const panel = $("#paste-panel");
-  panel.hidden = !panel.hidden;
-  event.currentTarget.setAttribute("aria-expanded", String(!panel.hidden));
-  if (!panel.hidden) $("#paste").focus();
-});
-$("#import-paste").addEventListener("click", () => {
-  try { importSource($("#paste").value); } catch (error) { message(error.message, true, true); }
-});
 $("#export-file").addEventListener("change", async (event) => {
   const input = event.currentTarget;
   const file = input.files[0];
   input.value = "";
   if (!file) return;
+  const revision = ++importRevision;
+  const taskUrl = jiraInput.value.trim();
   try {
-    importSource(inputData.decode(await file.arrayBuffer()), file.name);
+    if (!/\.json$/i.test(file.name)) throw new Error("Загрузите файл в формате JSON.");
+    if (!taskUrl) {
+      jiraInput.focus();
+      throw new Error("Укажите ссылку на задачу Jira и повторите загрузку JSON.");
+    }
+    const bytes = await file.arrayBuffer();
+    if (revision !== importRevision) return;
+    const runs = inputData.parse(inputData.decode(bytes));
+    if (!jira) throw new Error("Откройте раздел Word в боковой панели расширения.");
+    message("Загружаю задачу из Jira…");
+    const issue = await jira.read(taskUrl);
+    if (revision === importRevision) await startReport(runs, issue);
   } catch (error) {
-    message(error.message, true, true);
+    if (revision === importRevision) message(error.message, true, true);
   }
 });
 $("#batch-images").addEventListener("change", (event) => {
@@ -597,7 +552,6 @@ $("#batch-images").addEventListener("change", (event) => {
   attach(files);
 });
 $("#retry-images").addEventListener("click", () => loadScreenshots(targetRows().map(({item}) => item)));
-$("#manual").addEventListener("click", () => addCase());
 exportButton.addEventListener("click", download);
 document.addEventListener("paste", (event) => {
   if (!imagePasteTarget) return;

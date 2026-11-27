@@ -5,7 +5,6 @@ import {savedConnectionKey, savedConnectionWriter} from './connection.mjs';
 const $ = id => document.getElementById(id);
 let busy = false;
 let job;
-let reportSource;
 const exporter = $('word-exporter');
 const formsAuth = () => Object.fromEntries(['mode', 'org', 'token'].map(id => [id, $(id).value]));
 const writeSavedConnection = savedConnectionWriter(chrome.storage.local);
@@ -29,13 +28,13 @@ window.formsScreenshots = {
   download: (link, signal) => downloadFormsAttachment(link, formsAuth(), {signal})
 };
 
-function sendReportSource() {
-  if (reportSource && exporter.getAttribute('src')) {
-    exporter.contentWindow?.postMessage({type: 'report-source', source: reportSource}, location.origin);
+window.wordJira = {
+  async read(value) {
+    const link = jiraLink(value);
+    const issue = await readIssue(link);
+    return {url: link.url, key: link.key, title: issue.title.trim()};
   }
-}
-
-exporter.addEventListener('load', sendReportSource);
+};
 $('token').addEventListener('change', () => {
   if ($('token').value.trim() && $('word-workflow').open) {
     exporter.contentWindow?.postMessage({type: 'retry-form-files'}, location.origin);
@@ -69,10 +68,7 @@ function report(message, error = false) {
 function showEditor(url) {
   $('result').href = url;
   $('result').hidden = false;
-  const answersUrl = url.replace(/\/edit$/, '/answers');
-  reportSource = {answersUrl, title: job.plan.name, taskUrl: job.taskUrl};
-  chrome.storage.local.set({lastDraft: url, lastReportSource: reportSource}).catch(() => {});
-  sendReportSource();
+  chrome.storage.local.set({lastDraft: url}).catch(() => {});
 }
 
 function numberRows() {
@@ -154,8 +150,7 @@ async function createDraft() {
     if (recipient && !$('recipient').validity.valid) throw new Error('Проверьте адрес для уведомлений.');
     if (!job?.id) {
       const plan = readPlan();
-      const source = $('jira').value.trim();
-      job = {plan, recipient, taskUrl: source ? jiraLink(source).url : ''};
+      job = {plan, recipient};
     }
     await chrome.storage.local.set({mode: auth.mode, org: auth.org, recipient});
     await populateDraft(api, job, (message, url) => {
@@ -208,7 +203,7 @@ $('next').addEventListener('click', () => {
 
 addDefaultStand();
 addRow('cases', 'case-row', false);
-const preferences = await chrome.storage.local.get(['mode', 'org', 'recipient', 'lastDraft', 'lastReportSource', savedConnectionKey]);
+const preferences = await chrome.storage.local.get(['mode', 'org', 'recipient', 'lastDraft', savedConnectionKey]);
 for (const id of ['mode', 'org', 'recipient']) {
   if (typeof preferences[id] === 'string') $(id).value = preferences[id];
 }
@@ -223,8 +218,5 @@ if (typeof savedConnection?.token === 'string' && savedConnection.token.trim()) 
 if (/^https:\/\/forms\.yandex\.ru\/cloud\/admin\/[a-f0-9]{24}\/edit$/i.test(preferences.lastDraft)) {
   $('result').href = preferences.lastDraft;
   $('result').hidden = false;
-  const answersUrl = preferences.lastDraft.replace(/\/edit$/, '/answers');
-  reportSource = preferences.lastReportSource?.answersUrl === answersUrl ? preferences.lastReportSource : {answersUrl};
-  sendReportSource();
 }
 updateEditor();

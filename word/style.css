@@ -40,22 +40,18 @@ button:disabled { opacity: .5; cursor: default; }
 :focus-visible, .file-button:focus-within { outline: 3px solid #60967a; outline-offset: 2px; }
 .file-button { position: relative; }
 .file-button input { position: absolute; inset: 0; width: 100%; opacity: 0; cursor: pointer; }
-.toolbar, .with-button { display: flex; gap: 9px; align-items: center; }
-.toolbar { flex-wrap: wrap; }
-.with-button .button { white-space: nowrap; margin-top: 5px; }
+.toolbar { display: flex; flex-wrap: wrap; gap: 9px; align-items: center; }
+#jira-task + .toolbar { margin-top: 10px; }
 .hint { font-size: 13px; margin: 6px 0 14px; }
-.other-import { margin-top: 12px; }
-.other-import > summary, #report > summary, #results > summary { font-weight: 650; cursor: pointer; }
-.other-import[open] > summary, #report[open] > summary, #results[open] > summary { margin-bottom: 9px; }
+#report > summary, #results > summary { font-weight: 650; cursor: pointer; }
+#report[open] > summary, #results[open] > summary { margin-bottom: 9px; }
 #results .section-head { margin-top: 8px; }
-#use-last-form { margin-top: 8px; }
 .export-actions { margin: 12px 0 0; }
 .run-fields { display: grid; gap: 8px; }
 .run-heading, .excluded-run { display: flex; align-items: baseline; justify-content: space-between; flex-wrap: wrap; gap: 8px; }
 .run-heading h3 { margin: 0; overflow-wrap: anywhere; }
 .excluded-run { margin-top: 8px; }
 #excluded > summary { font-weight: 650; cursor: pointer; }
-.paste-panel { padding-top: 15px; }
 .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
 .report-fields { margin-top: 12px; }
 .run-fields { margin-bottom: 14px; }
@@ -86,6 +82,5 @@ a { color: var(--accent); }
   .panel { padding: 14px; }
   .grid { grid-template-columns: 1fr; }
   .top, .section-head { align-items: flex-start; flex-wrap: wrap; }
-  .with-button { align-items: stretch; flex-direction: column; }
   .case-title { max-width: calc(100% - 85px); }
 }

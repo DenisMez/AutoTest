@@ -5,7 +5,7 @@ export async function readIssue({key, url}, browser = chrome) {
   const tab = tabs.find(tab => tab.url?.split(/[?#]/)[0] === url) ?? tabs[0];
   if (!tab) {
     await browser.tabs.create({url});
-    throw new Error('Открыл Jira. Войдите в свой аккаунт, затем вернитесь и нажмите «Загрузить из Jira» ещё раз.');
+    throw new Error('Jira открыта в новой вкладке. Войдите в аккаунт и повторите загрузку.');
   }
   const [{result} = {}] = await browser.scripting.executeScript({
     target: {tabId: tab.id}, args: [key], func: async issueKey => {
@@ -21,7 +21,7 @@ export async function readIssue({key, url}, browser = chrome) {
   });
   if (result?.key !== key || typeof result.title !== 'string') {
     const detail = result?.status === 404 ? 'Задача не найдена или к ней нет доступа.' : 'Проверьте вход в Jira и доступ к задаче.';
-    throw new Error(`${detail} Кейсы можно заполнить вручную.`);
+    throw new Error(detail);
   }
   return {title: result.title, raw: typeof result.raw === 'string' ? result.raw : '',
     rendered: typeof result.rendered === 'string' ? result.rendered : ''};

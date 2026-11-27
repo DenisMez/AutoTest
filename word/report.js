@@ -61,6 +61,7 @@ const wordReport = (() => {
     if (item.expected.trim()) evidence.push(paragraph(item.expected, { after: 35 }));
     if (item.comment.trim()) evidence.push(paragraph(item.comment, { label: "Комментарий", after: 35 }));
     item.images.forEach((asset) => evidence.push(screenshot(asset)));
+    if (item.missingScreenshots) evidence.push(paragraph("Недоступных скриншотов: " + item.missingScreenshots));
     return new TableRow({ children: [
       cell([paragraph(item.action)], 0),
       cell(evidence, 1),
@@ -92,7 +93,7 @@ const wordReport = (() => {
       information("Предусловие:", "", { fill: "E6E6E6", bold: true }),
       preconditionRow(hyperlink(info.taskLink, "Ссылка на задачу")),
       preconditionRow(
-        paragraph("Запустить kis ТЕСТ М99 и ввести логин/пароль для входа в систему (Пользователь ВРАЧТП-333, Администратор КД, Общий медицинский персонал)"),
+        paragraph("Запустить kis ТЕСТ М99 и ввести логин/пароль для входа в систему (Пользователь ВРАЧТП-333, Администратора, С8 ПО)"),
         "Окно для ввода логин/пароль открыто и доступно, ввести данные"
       ),
       preconditionRow(paragraph("Обратившиеся"), "Список открыт и доступен")

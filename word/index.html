@@ -15,35 +15,17 @@
     <div id="message" class="message" role="status" aria-live="polite" hidden></div>
     <section class="panel" aria-labelledby="import-heading">
       <h2 id="import-heading">Ответы тестировщиков</h2>
-      <label for="form-link">Ссылка на форму</label>
-      <div class="with-button">
-        <input id="form-link" type="url" placeholder="https://forms.yandex.ru/cloud/…">
-        <a class="button" id="open-form" target="_blank" rel="noopener noreferrer" hidden>Открыть форму</a>
-      </div>
-      <button id="use-last-form" type="button" hidden>Взять последний чек-лист</button>
-      <p class="hint">Скачайте CSV или JSON на вкладке «Ответы» и загрузите его сюда.</p>
+      <label for="jira-task">Ссылка на задачу Jira</label>
+      <input id="jira-task" type="url" placeholder="https://jira.mos.social/browse/…">
       <div class="toolbar">
-        <label class="button file-button">Загрузить CSV или JSON<input id="export-file" type="file" accept=".csv,.json,text/csv,application/json"></label>
+        <label class="button file-button">Загрузить JSON<input id="export-file" type="file" accept=".json,application/json"></label>
       </div>
-      <details class="other-import">
-        <summary>Вставка текста и ручной ввод</summary>
-        <div class="toolbar">
-          <button id="toggle-paste" type="button" aria-controls="paste-panel" aria-expanded="false">Вставить текст</button>
-          <button id="manual" type="button">Добавить кейс вручную</button>
-        </div>
-        <div id="paste-panel" class="paste-panel" hidden>
-          <label for="paste">Текст письма, CSV или JSON</label>
-          <textarea id="paste" rows="5" placeholder="Вставьте содержимое письма или выгрузки"></textarea>
-          <p class="hint">Для нескольких кейсов используйте строки «Кейс 1», «Кейс 2». Поля распознаются по подписям «Действие», «Ожидаемый результат», «Результат», «Комментарий» и «Скриншоты».</p>
-          <button id="import-paste" type="button">Загрузить текст</button>
-        </div>
-      </details>
+      <p class="hint">Вставьте ссылку и выберите JSON с ответами. Word скачается автоматически.</p>
     </section>
     <details id="report" class="panel" hidden>
-      <summary>Данные отчёта</summary>
+      <summary>Данные отчёта <span id="report-task"></span></summary>
       <label>Название задачи<input id="title" placeholder="Укажите название задачи"></label>
       <div class="grid report-fields">
-        <label>Ссылка на задачу<input id="task-link" type="url" required placeholder="https://jira…/browse/…"></label>
         <label>Функция или версия ПО<input id="version"></label>
         <label>Заявитель или медицинская организация<input id="organization"></label>
         <label>Постусловие<textarea id="postcondition" rows="2"></textarea></label>
